@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Django SAAGIE</title>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" id="theme-styles">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body>
+    <div class="row">
+        <div class="col-md-2">
+            <section class="text-center">
+                <img class="mb-4" src="https://www.estiam.education/wp-content/uploads/2021/12/estiam_logo_PARIS.png" alt="" height="72">
+                <div class="col-md-12">
+                    <div class="form-signin row">
+                        <h1 class="h3 mb-3 font-weight-normal">Groupe 18 Hackaton</h1>
+                        <label for="inputEmail" class="sr-only">Email address</label>
+
+                        <button class="btn btn-lg btn-primary btn-block" onclick="loadDoc()" type="submit">Audit du Projet</button>
+                        <button class="btn btn-lg btn-primary btn-block" onclick="copyProject()" type="submit">Copier/Coller du contenu </button>
+                        <button class="btn btn-lg btn-primary btn-block" onclick="restoreProject()" type="submit">Restore  projet</button>
+                        <button class="btn btn-lg btn-primary btn-block" onclick="BackupProject()" type="submit">Backup projet</button>
+
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="col-md-8">
+            <p>
+                <table class="table table-responsive">
+                    <tbody id="demo"></tbody>
+                </table>
+            </p>
+        </div>
+        <div class="col-md-2">
+
+        </div>
+    </div>
+    <p class="mt-5 mb-3 text-muted">&copy; [ESTIAM] G18 Hackathon</p>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <script>
+        function loadDoc(rest) {
+            document.getElementById("demo").style.display = "block";
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var rest = this.responseText;
+                    rest = JSON.parse(rest);
+                    document.getElementById("demo").innerHTML = "<tr><td>Votre Projet</td></tr><tr><td> Projet ID : " + rest['info']['data']['project']['id'] + "<br> Name : " + rest['info']['data']['project']['name'] + "<br> Status : " + rest['info']['data']['project']['status'] + "<br> Créateur : " + rest['info']['data']['project']['creator'] + "</td> </tr>";
+                    document.getElementById("demo").innerHTML += "<tr><td>Technologies</td></tr><tr><td>" + rest["technologies"]["data"]["technology"]["label"] + "</td> </tr>";
+                    document.getElementById("demo").innerHTML += "<tr><td>Nombre de Jobs sur le projet</td></tr><tr><td>" + rest['info']['data']['project']['jobsCount'] + "</td> </tr>";
+                    document.getElementById("demo").innerHTML += "<tr><td>Listes des Droits</td></tr><tr><td>"
+                    for (let index = 0; index < 3; index++) {
+                        document.getElementById("demo").innerHTML += "<br>" + rest["info"]["data"]["rights"][index]["name"];
+                    }
+                    document.getElementById("demo").innerHTML += "</td> </tr>";
+                }
+            };
+            xhttp.open("GET", "http://0.0.0.0:8080/hackathon/", true);
+            xhttp.send();
+        }
+
+        function cleaner() {
+            return
+        }
+
+        function copyProject() {
+            document.getElementById("demo").style.display = "none";
+
+        }
+
+        function restoreProject() {
+            document.getElementById("demo").style.display = "none";
+            Swal.fire({
+                title: 'Entrer le lien du Json que vous voulez restaurer',
+                input: 'text',
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Call Saagie API',
+                showLoaderOnConfirm: true,
+                preConfirm: (login) => {
+                    return fetch(`https://demo-workspace.a4.saagie.io/gateway/api/graphiql/${login}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(response.statusText)
+                            }
+                            return response.json()
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(
+                                `Acces Denied: ${error}`
+                            )
+                        })
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: `${result.value.login}'s avatar`,
+                        imageUrl: result.value.avatar_url
+                    })
+                }
+            })
+        }
+
+        function BackupProject() {
+            Swal.fire({
+                title: 'Vous allez sauvegarder le fichier ?',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                denyButtonText: `Don't save`,
+            }).then((result) => {
+                /* Read more about isConfirmed, isDenied below */
+                if (result.isConfirmed) {
+                    BackupProjectd();
+                    Swal.fire('Saved!', '', 'success');
+                } else if (result.isDenied) {
+                    Swal.fire('Aucune sauvegarde ', '', 'info');
+                }
+            })
+        }
+
+        function BackupProjectd() {
+            document.getElementById("demo").style.display = "none";
+            var rest = [];
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var rest = this.responseText;
+                    var hiddenElement = document.createElement('a');
+
+                    hiddenElement.href = 'data:attachment/text,' + encodeURI(rest);
+                    hiddenElement.target = '_blank';
+                    hiddenElement.download = 'restoreProject.txt';
+                    hiddenElement.click();
+                }
+            };
+            xhttp.open("GET", "http://0.0.0.0:8080/hackathon/", true);
+            xhttp.send();
+
+        }
+    </script>
+</body>
+
+</html>
